@@ -67,7 +67,7 @@ make -j "${JOBS}" PROGRAMS="dropbear dbclient dropbearkey dropbearconvert scp" S
 
 # --- Package ----------------------------------------------------------------
 [[ -x ./dropbear ]] || { echo "Build failed: dropbear missing"; exit 1; }
-strip ./drop* dbclient scp || true
+strip --strip-all ./drop* dbclient scp || true
 
 # Stage files (with symlinks) inside dropbear-${TARGET}/
 stage_dir="${builddir}/stage/dropbear-${TARGET}"
