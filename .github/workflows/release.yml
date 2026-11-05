@@ -61,9 +61,9 @@ jobs:
           tar -xJf "dropbear-${TARGET}.tar.xz" -C testdir
           docker run --rm --platform "${plat}" -v "$PWD/testdir/dropbear-${TARGET}:/out:ro" alpine:3 sh -lc '
             apk add --no-cache file >/dev/null 2>&1 || true
-            file /out/dropbearmulti || true
-            ldd /out/dropbearmulti || true
-            /out/dropbearmulti -h >/dev/null || true
+            file /out/dropbear || true
+            ldd /out/dropbear || true
+            /out/dropbear -h >/dev/null || true
           '
 
       - name: Upload dropbear artifact (tarballs)
@@ -73,3 +73,5 @@ jobs:
           overwrite: true
           path: |
             dropbear-${{ matrix.target }}.tar.xz
+            dropbear-${{ matrix.target }}.tar.xz.SHA256
+
