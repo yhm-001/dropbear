@@ -54,7 +54,7 @@ CC="${ZIG_BIN} cc -target ${TARGET}" \
 CFLAGS="-Os -fno-pie" \
 LDFLAGS="-static -no-pie" \
 # 关键：关闭后量子KEX SNTRUP761 MLKEM768，解决iOS NIOSSH握手失败
-CPPFLAGS="-DDROPBEAR_X11FWD -UDROPBEAR_SNTRUP761 -UDROPBEAR_MLKEM768" \
+CPPFLAGS="-DDROPBEAR_X11FWD" \
 ./configure \
   --host="${TARGET}" \
   --disable-pam \
