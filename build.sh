@@ -2,7 +2,7 @@
 set -ev
 
 # ---- Config ----------------------------------------------------------------
-: "${DROPBEAR_VERSION:=2025.88}"   # Dropbear release to build
+: "${DROPBEAR_VERSION:=2026.94}"   # Dropbear release to build
 : "${ZIG_VERSION:=0.15.1}"         # Zig to use for musl cross static
 : "${JOBS:=8}"                     # parallel make
 
