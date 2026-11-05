@@ -49,9 +49,9 @@ echo "Cleaning previous build (if any)…"
 make clean || true
 
 echo "Configuring for ${TARGET}…"
-CC="${ZIG_BIN} cc -target ${TARGET}" \
-CFLAGS="-Os -fno-pie" \
-LDFLAGS="-static -no-pie" \
+CC="${ZIG_BIN} cc -target ${TARGET} -no-pie" \
+CFLAGS="-Os" \
+LDFLAGS="" \
 CPPFLAGS="-DDROPBEAR_X11FWD -UDROPBEAR_SNTRUP761 -UDROPBEAR_MLKEM768 -DDROPBEAR_SMALL_CODE" \
 ./configure \
   --host="${TARGET}" \
