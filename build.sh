@@ -3,7 +3,7 @@ set -ev
 
 # ---- Config ----------------------------------------------------------------
 : "${DROPBEAR_VERSION:=2026.94}"   # Dropbear release to build
-: "${ZIG_VERSION:=0.15.1}"         # Zig to use for musl cross static
+: "${ZIG_VERSION:=0.17.0}"         # 更新为最新稳定zig 0.17.0
 : "${JOBS:=8}"                     # parallel make
 
 # TARGET may be provided by CI matrix (e.g., x86_64-linux-musl, aarch64-linux-musl
@@ -53,7 +53,8 @@ echo "Configuring for ${TARGET}…"
 CC="${ZIG_BIN} cc -target ${TARGET}" \
 CFLAGS="-Os -fno-pie" \
 LDFLAGS="-static -no-pie" \
-CPPFLAGS="-DDROPBEAR_X11FWD" \
+# 关键：关闭后量子KEX SNTRUP761 MLKEM768，解决iOS NIOSSH握手失败
+CPPFLAGS="-DDROPBEAR_X11FWD -UDROPBEAR_SNTRUP761 -UDROPBEAR_MLKEM768" \
 ./configure \
   --host="${TARGET}" \
   --disable-pam \
