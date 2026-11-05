@@ -13,13 +13,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-linux-musl
-            runs_on: ubuntu-latest
           - target: aarch64-linux-musl
             runs_on: ubuntu-24.04-arm
 
     env:
-      DROPBEAR_VERSION: 2025.88
+      DROPBEAR_VERSION: 2026.94
       ZIG_VERSION: 0.15.1
       JOBS: 8
 
@@ -127,8 +125,6 @@ jobs:
           name: ${{ github.ref_name }}
           files: |
             dist/**/dropbear-*.tar.xz
-            dist/**/dropbear-*.tar.xz.SHA256
             dist/**/sftp-server-*.tar.xz
-            dist/**/sftp-server-*.tar.xz.SHA256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
