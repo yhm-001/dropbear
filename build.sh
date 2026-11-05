@@ -3,10 +3,10 @@ set -ev
 
 # ---- Config ----------------------------------------------------------------
 : "${DROPBEAR_VERSION:=2026.94}"   # Dropbear release to build
-: "${ZIG_VERSION:=0.17.0}"         # 更新为最新稳定zig 0.17.0
+: "${ZIG_VERSION:=0.17.0}"         # Zig cross compiler version
 : "${JOBS:=8}"                     # parallel make
 
-# TARGET may be provided by CI matrix (e.g., x86_64-linux-musl, aarch64-linux-musl
+# TARGET may be provided by CI matrix (e.g., aarch64-linux-musl
 if [[ -z "${TARGET:-}" ]]; then
   case "$(uname -m)" in
     x86_64)  TARGET="x86_64-linux-musl" ;;
@@ -27,7 +27,6 @@ echo "Downloading Zig ${ZIG_VERSION} for ${zig_pkg_arch}..."
 curl -fsSL "$zig_url" -o "${builddir}/${zig_pkg}"
 echo "Extracting Zig to $builddir..."
 tar -C "$builddir" -xJf "${builddir}/${zig_pkg}"
-echo "Extracted zig"
 
 zig_root="$(tar -tf "${builddir}/${zig_pkg}" | head -1 | cut -d/ -f1)"
 ZIG_BIN="${builddir}/${zig_root}/zig"
@@ -45,7 +44,7 @@ echo "Extracting Dropbear..."
 tar -C "$builddir" -xjf "${builddir}/${dropbear_tar}"
 cd "${builddir}/dropbear-${DROPBEAR_VERSION}"
 
-# --- Build (static, musl) ---------------------------------------------------
+# --- Build static dropbearmulti single binary --------------------------------
 echo "Cleaning previous build (if any)…"
 make clean || true
 
@@ -53,7 +52,6 @@ echo "Configuring for ${TARGET}…"
 CC="${ZIG_BIN} cc -target ${TARGET}" \
 CFLAGS="-Os -fno-pie" \
 LDFLAGS="-static -no-pie" \
-# 关键：关闭后量子KEX SNTRUP761 MLKEM768，解决iOS NIOSSH握手失败
 CPPFLAGS="-DDROPBEAR_X11FWD -UDROPBEAR_SNTRUP761 -UDROPBEAR_MLKEM768 -DDROPBEAR_SMALL_CODE" \
 ./configure \
   --host="${TARGET}" \
@@ -62,25 +60,32 @@ CPPFLAGS="-DDROPBEAR_X11FWD -UDROPBEAR_SNTRUP761 -UDROPBEAR_MLKEM768 -DDROPBEAR_
   --enable-bundled-libtom \
   --enable-static
 
-echo "Building dropbear…"
-make -j "${JOBS}" PROGRAMS="dropbear dbclient dropbearkey dropbearconvert scp" STATIC=1
+# 只编译 dropbearmulti 合并单二进制
+echo "Building dropbearmulti (single combined binary)…"
+make -j "${JOBS}" PROGRAMS="dropbearmulti" STATIC=1
 
-# --- Package ----------------------------------------------------------------
-[[ -x ./dropbear ]] || { echo "Build failed: dropbear missing"; exit 1; }
-strip --strip-all ./drop* dbclient scp || true
+# --- Stage: create symlinks for multi binary --------------------------------
+[[ -x ./dropbearmulti ]] || { echo "Build failed: dropbearmulti missing"; exit 1; }
+strip --strip-all ./dropbearmulti || true
 
-# Stage files (with symlinks) inside dropbear-${TARGET}/
 stage_dir="${builddir}/stage/dropbear-${TARGET}"
 mkdir -p "${stage_dir}"
-cp ./dropbear* dbclient scp "${stage_dir}/"
+# 复制唯一主二进制
+cp ./dropbearmulti "${stage_dir}/"
+# 创建符号链接，dropbearmulti 通过 argv[0] 判断执行模式
+cd "${stage_dir}"
+ln -s dropbearmulti dropbear
+ln -s dropbearmulti dbclient
+ln -s dropbearmulti dropbearkey
+ln -s dropbearmulti dropbearconvert
 
-# Produce dropbear-${TARGET}.tar.xz in the original working dir
+# --- Package tarball --------------------------------------------------------
 out_tar="${workdir}/dropbear-${TARGET}.tar.xz"
 echo "Creating ${out_tar}…"
 tar -C "${builddir}/stage" -cJf "${out_tar}" "dropbear-${TARGET}"
 
-# SHA256 for convenience
-echo "SHA256: "
+# SHA256 sum
 sha256sum "${out_tar}" | tee "${out_tar}.SHA256"
 
 echo "Done: ${out_tar}"
+echo "Inside tarball: dropbearmulti + symlinks: dropbear,dbclient,dropbearkey,dropbearconvert"
