@@ -36,7 +36,6 @@ jobs:
       - name: Make build scripts executable
         run: |
           git update-index --chmod=+x build.sh
-          git update-index --chmod=+x build-sftp-openssh.sh
 
       - name: Build static dropbearmulti (musl)
         env:
@@ -49,40 +48,22 @@ jobs:
       - name: Show dropbear outputs
         run: ls -l dropbear-*.tar.xz*
 
-      - name: Build static sftp-server (OpenSSH)
-        env:
-          TARGET: ${{ matrix.target }}
-          OPENSSH_VERSION: 9.8p1
-          ZIG_VERSION: ${{ env.ZIG_VERSION }}
-          JOBS: ${{ env.JOBS }}
-        run: ./build-sftp-openssh.sh
-
-      - name: Show sftp outputs
-        run: ls -l sftp-server-*.tar.xz*
-
       # Simple container smoke check matching the target arch
       - name: Test binaries in Alpine container
         env:
           TARGET: ${{ matrix.target }}
         run: |
           case "$TARGET" in
-            x86_64-linux-musl) plat="linux/amd64" ;;
             aarch64-linux-musl) plat="linux/arm64" ;;
             *) echo "Unknown TARGET $TARGET"; exit 1 ;;
           esac
-          mkdir -p testdir testdir-sftp
+          mkdir -p testdir
           tar -xJf "dropbear-${TARGET}.tar.xz" -C testdir
-          tar -xJf "sftp-server-${TARGET}.tar.xz" -C testdir-sftp
           docker run --rm --platform "${plat}" -v "$PWD/testdir/dropbear-${TARGET}:/out:ro" alpine:3 sh -lc '
             apk add --no-cache file >/dev/null 2>&1 || true
             file /out/dropbear || true
             ldd /out/dropbear || true
             /out/dropbear -h >/dev/null || true
-          '
-          docker run --rm --platform "${plat}" -v "$PWD/testdir-sftp/sftp-server-${TARGET}:/out:ro" alpine:3 sh -lc '
-            apk add --no-cache file >/dev/null 2>&1 || true
-            file /out/sftp-server || true
-            ldd /out/sftp-server || true
           '
 
       - name: Upload dropbear artifact (tarballs)
@@ -93,15 +74,6 @@ jobs:
           path: |
             dropbear-${{ matrix.target }}.tar.xz
             dropbear-${{ matrix.target }}.tar.xz.SHA256
-
-      - name: Upload sftp-server artifact (tarballs)
-        uses: actions/upload-artifact@v4
-        with:
-          name: sftp-server-${{ matrix.target }}
-          overwrite: true
-          path: |
-            sftp-server-${{ matrix.target }}.tar.xz
-            sftp-server-${{ matrix.target }}.tar.xz.SHA256
 
   release:
     name: create github release
@@ -125,6 +97,5 @@ jobs:
           name: ${{ github.ref_name }}
           files: |
             dist/**/dropbear-*.tar.xz
-            dist/**/sftp-server-*.tar.xz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
