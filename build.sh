@@ -51,7 +51,7 @@ make clean || true
 
 echo "Configuring for ${TARGET}…"
 CC="${ZIG_BIN} cc -target ${TARGET}" \
-CFLAGS="-Os -fno-pie" \
+CFLAGS="-Os -fno-pie -DDROPBEAR_ENABLE_GCM_MODE=1 -UDROPBEAR_SNTRUP761 -UDROPBEAR_MLKEM768" \
 LDFLAGS="-static -no-pie" \
 # 关键：关闭后量子KEX SNTRUP761 MLKEM768，解决iOS NIOSSH握手失败
 CPPFLAGS="-DDROPBEAR_X11FWD" \
